@@ -1,0 +1,53 @@
+---
+description: 命名规范、文件组织、TypeScript 和 React 编码标准
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# 编码标准
+
+## 命名规范
+
+- **文件名**：组件用 PascalCase（`OrderList.tsx`），工具/查询用 camelCase（`utils.ts`）
+- **组件**：PascalCase（`OrderForm`）
+- **函数/变量**：camelCase（`getOrderById`）
+- **类型/接口**：PascalCase，接口不加 `I` 前缀（`Order` 而非 `IOrder`）
+- **常量**：UPPER_SNAKE_CASE（`MAX_PAGE_SIZE`）
+- **数据库字段**：camelCase（`customerId`）
+
+## TypeScript 规则
+
+- `strict: true` 已启用，零 `any` 容忍
+- 所有导出函数必须有显式返回类型
+- 优先用 `interface` 定义对象形状，`type` 用于联合/交叉/映射类型
+- 使用 `as const` 替代 enum
+
+```typescript
+// ✅ 正确
+export const ORDER_STATUS = {
+  PENDING_SAMPLE: '待打样',
+  SAMPLING: '打样中',
+  PENDING_PRODUCTION: '待生产',
+  IN_PRODUCTION: '生产中',
+  COMPLETED: '已完成',
+  SHIPPED: '已发货',
+} as const;
+
+type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
+
+// ❌ 错误：不要用 enum
+enum OrderStatus { ... }
+```
+
+## React 规则
+
+- 只用函数组件 + hooks，不使用 class 组件
+- Props 接口命名为 `XxxProps`（如 `OrderFormProps`）
+- 事件处理函数命名：`handleXxx`（如 `handleSubmit`）
+- 自定义 hook 命名：`useXxx`（如 `useOrders`）
+
+## 禁止
+
+- `console.log`（ESLint 已配置报错）
+- `any` 类型（ESLint 已配置报错）
+- 未使用的变量和 import（TypeScript + ESLint 已配置报错）

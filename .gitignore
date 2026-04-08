@@ -1,0 +1,12 @@
+node_modules/
+dist/
+target/
+
+*.log
+*.local
+
+.DS_Store
+Thumbs.db
+
+*.db
+*.db-journal

@@ -1,0 +1,48 @@
+---
+description: 数据库设计约定和 Drizzle ORM 使用规范
+globs: "src/lib/**/*.ts"
+alwaysApply: false
+---
+
+# 数据库规范
+
+## Drizzle ORM 约定
+
+- 所有表定义集中在 `src/lib/schema.ts`
+- 查询函数按模块拆分到 `src/lib/queries/`（orders.ts, customers.ts 等）
+- 查询函数必须有明确的参数类型和返回类型
+
+## 表设计约定
+
+- **主键**：自增整数 `id`
+- **时间戳**：`createdAt`、`updatedAt`，SQLite 存储为 ISO 8601 字符串
+- **金额**：整数存储（单位：分），显示时除以 100 转为元
+- **状态字段**：使用 `text` 类型 + TypeScript 联合类型约束合法值
+- **外键**：命名为 `xxxId`（如 `customerId`），建立外键约束
+
+## 查询模式
+
+```typescript
+// 查询函数签名示例
+export async function getOrderById(
+  db: Database,
+  id: number,
+): Promise<Order | null> { ... }
+
+export async function listOrders(
+  db: Database,
+  filters: OrderFilters,
+): Promise<Order[]> { ... }
+
+export async function createOrder(
+  db: Database,
+  data: NewOrder,
+): Promise<Order> { ... }
+```
+
+## 金额计算规则
+
+- 总金额 = 数量 × 单价（均以分为单位）
+- 未收金额 = 总金额 − 已收款总和
+- 所有金额计算使用整数运算，杜绝浮点误差
+- 前端展示时用工具函数 `formatCurrency(amountInCents)` 格式化为元
