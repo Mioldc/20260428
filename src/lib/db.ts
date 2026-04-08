@@ -50,3 +50,10 @@ export async function setConfig(key: string, value: string | null): Promise<void
     [key, value],
   );
 }
+
+export async function closeDb(): Promise<void> {
+  if (connection) {
+    await connection.close();
+    connection = null;
+  }
+}

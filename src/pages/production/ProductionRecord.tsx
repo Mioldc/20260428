@@ -140,16 +140,18 @@ export function ProductionRecord(): ReactElement {
         </Button>
       </div>
 
-      <div className="flex items-center gap-4">
-        <Label htmlFor="prodDate">日期</Label>
-        <Input
-          id="prodDate"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-48"
-        />
-        <span className="text-sm text-muted-foreground">
+      <div className="flex items-end gap-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="prodDate">日期</Label>
+          <Input
+            id="prodDate"
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="w-44"
+          />
+        </div>
+        <span className="text-sm text-muted-foreground pb-2">
           共 {records.length} 条记录 · 总产量 {totalQty}
           {totalDefects > 0 && ` · 次品 ${totalDefects}`}
         </span>

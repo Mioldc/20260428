@@ -1,5 +1,5 @@
-import { type ReactElement, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { type ReactElement, useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, Save, Database, Lock, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useMachines } from '@/hooks/useMachines';
+import { getConfig, setConfig } from '@/lib/db';
+import { backupDatabase, restoreDatabase } from '@/lib/backup';
 import type { Machine, NewMachine, MachineStatus } from '@/types';
 import { MACHINE_STATUS } from '@/types';
 
@@ -57,7 +59,32 @@ export function SettingsPage(): ReactElement {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(true);
+
+  // Backup state
+  const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
+  const [backingUp, setBackingUp] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
   const { machines, loading, create, update, remove } = useMachines();
+
+  useEffect(() => {
+    async function loadConfig(): Promise<void> {
+      try {
+        const pwd = await getConfig('password');
+        setCurrentPassword(pwd);
+        const backup = await getConfig('lastBackupTime');
+        setLastBackupTime(backup);
+      } finally {
+        setPasswordLoading(false);
+      }
+    }
+    void loadConfig();
+  }, []);
 
   function openCreate(): void {
     setEditingId(null);
@@ -117,13 +144,71 @@ export function SettingsPage(): ReactElement {
     }
   }
 
+  async function handleSetPassword(): Promise<void> {
+    if (newPassword !== confirmPassword) {
+      toast.error('两次输入的密码不一致');
+      return;
+    }
+    try {
+      if (newPassword.trim()) {
+        await setConfig('password', newPassword.trim());
+        setCurrentPassword(newPassword.trim());
+        toast.success('密码已设置');
+      } else {
+        await setConfig('password', null);
+        setCurrentPassword(null);
+        toast.success('密码已清除');
+      }
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch {
+      toast.error('设置失败');
+    }
+  }
+
+  async function handleBackup(): Promise<void> {
+    setBackingUp(true);
+    try {
+      const dest = await backupDatabase();
+      if (dest) {
+        const now = await getConfig('lastBackupTime');
+        setLastBackupTime(now);
+        toast.success('备份成功');
+      }
+    } catch {
+      toast.error('备份失败');
+    } finally {
+      setBackingUp(false);
+    }
+  }
+
+  async function handleRestore(): Promise<void> {
+    setRestoring(true);
+    try {
+      const success = await restoreDatabase();
+      if (success) {
+        toast.success('恢复成功，即将重新加载应用...');
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
+    } catch {
+      toast.error('恢复失败');
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold">系统设置</h2>
-        <p className="text-muted-foreground">管理机台、密码和数据备份</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold">系统设置</h2>
+          <p className="text-muted-foreground">管理机台、密码和数据备份</p>
+        </div>
       </div>
 
+      {/* Machine management */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -195,27 +280,95 @@ export function SettingsPage(): ReactElement {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
+        {/* Password setting */}
         <Card>
           <CardHeader>
-            <CardTitle>启动密码</CardTitle>
-            <CardDescription>设置应用启动密码</CardDescription>
+            <div className="flex items-center gap-2">
+              {currentPassword ? (
+                <Lock className="h-5 w-5 text-emerald-600" />
+              ) : (
+                <Unlock className="h-5 w-5 text-muted-foreground" />
+              )}
+              <div>
+                <CardTitle>启动密码</CardTitle>
+                <CardDescription>
+                  {passwordLoading
+                    ? '加载中...'
+                    : currentPassword
+                      ? '已设置启动密码'
+                      : '未设置启动密码'}
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">密码设置功能即将实现。</p>
+            <div className="space-y-3">
+              <div className="grid gap-2">
+                <Label htmlFor="newPwd">新密码（留空则清除密码）</Label>
+                <Input
+                  id="newPwd"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="输入新密码"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmPwd">确认密码</Label>
+                <Input
+                  id="confirmPwd"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="再次输入密码"
+                />
+              </div>
+              <Button size="sm" onClick={() => void handleSetPassword()} className="w-full">
+                <Save className="h-4 w-4" />
+                {newPassword ? '设置密码' : '清除密码'}
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
+        {/* Backup & restore */}
         <Card>
           <CardHeader>
-            <CardTitle>数据备份</CardTitle>
-            <CardDescription>备份和恢复数据库</CardDescription>
+            <div className="flex items-center gap-2">
+              <Database className="h-5 w-5" />
+              <div>
+                <CardTitle>数据备份</CardTitle>
+                <CardDescription>
+                  {lastBackupTime
+                    ? `上次备份: ${new Date(lastBackupTime).toLocaleString('zh-CN')}`
+                    : '从未备份过数据'}
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">备份功能将在 Phase 3 实现。</p>
+            <div className="space-y-3">
+              <Button className="w-full" onClick={() => void handleBackup()} disabled={backingUp}>
+                <Database className="h-4 w-4" />
+                {backingUp ? '备份中...' : '一键备份'}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => void handleRestore()}
+                disabled={restoring}
+              >
+                {restoring ? '恢复中...' : '从备份恢复'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                建议每周至少备份一次。恢复数据将覆盖当前所有数据，请谨慎操作。
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Machine dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>

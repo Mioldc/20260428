@@ -232,3 +232,92 @@ export interface NewProductionRecord {
   defectCount?: number;
   notes?: string;
 }
+
+export interface NewWorker {
+  name: string;
+  type: WorkerType;
+  monthlySalary?: number;
+  dayRate?: number;
+  nightRate?: number;
+  joinDate?: string;
+  status?: WorkerStatus;
+  phone?: string;
+  notes?: string;
+}
+
+export interface NewPayment {
+  orderId: number;
+  amount: number;
+  paymentDate: string;
+  paymentMethod?: PaymentMethod;
+  notes?: string;
+}
+
+export interface NewWageRecord {
+  workerId: number;
+  month: string;
+  salary: number;
+  isPaid?: number;
+  paidDate?: string;
+  notes?: string;
+}
+
+export interface NewDailyAttendance {
+  workerId: number;
+  date: string;
+  shift: ShiftType;
+  amount: number;
+  isPaid?: number;
+  paidDate?: string;
+  notes?: string;
+}
+
+export interface PaymentWithOrder extends OrderPayment {
+  orderNo: string;
+  productName: string;
+  customerName: string;
+}
+
+export interface WageRecordWithWorker extends WageRecord {
+  workerName: string;
+}
+
+export interface DailyAttendanceWithWorker extends DailyAttendance {
+  workerName: string;
+  dayRate: number | null;
+  nightRate: number | null;
+}
+
+export interface StatementOrder {
+  id: number;
+  orderNo: string;
+  productName: string;
+  orderDate: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  deposit: number;
+  unpaidAmount: number;
+  status: OrderStatus;
+}
+
+export interface StatementPayment {
+  id: number;
+  orderId: number;
+  orderNo: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: PaymentMethod;
+}
+
+export interface StatementData {
+  customer: Customer;
+  dateFrom: string;
+  dateTo: string;
+  orders: StatementOrder[];
+  payments: StatementPayment[];
+  totalOrderAmount: number;
+  totalDeposit: number;
+  totalPaid: number;
+  balance: number;
+}

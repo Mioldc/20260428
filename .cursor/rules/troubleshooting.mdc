@@ -22,4 +22,58 @@ alwaysApply: true
 
 ---
 
-（暂无记录 — 项目初始化阶段）
+## Phase 3 回顾发现的问题
+
+### 导出函数类型不匹配
+- **现象**：Finance 页面导出收款记录时，将 payment 数据硬塞进 `exportOrderList()` 的参数格式，导致 Excel 输出包含 `quantity: 0`、`unitPrice: 0` 等无意义字段
+- **原因**：偷懒复用订单导出函数，没有为收款记录创建专用导出函数
+- **解决**：在 `export.ts` 中新增 `exportPaymentList()` 函数，Finance 页面改用之
+- **防范**：每种数据类型应有专用导出函数，禁止用假数据填充不匹配的导出接口
+
+### 死代码三元表达式
+- **现象**：`backup.ts` 中 `const filePath = typeof src === 'string' ? src : src;` 两个分支完全相同
+- **原因**：Tauri dialog `open()` 的返回类型曾经可能是 `string | string[]`，后来简化为 `string | null`，但遗留代码未清理
+- **解决**：删除无效三元表达式，直接使用 `src`
+- **防范**：代码审查时留意两个分支相同的条件表达式
+
+### monthEnd 使用硬编码 -31
+- **现象**：`WorkerList.tsx` 中 `monthEnd()` 返回 `${month}-31`，对 2 月等月份产生无效日期
+- **原因**：SQLite 可以容错处理，但语义不正确
+- **解决**：使用 `new Date(year, month, 0).getDate()` 获取真实月末日期
+- **防范**：日期计算应使用 Date 对象计算，避免硬编码天数
+
+### 出勤批量录入重复检查不完整
+- **现象**：Attendance 页面批量录入时仅检查内存中的 `entries` 数组是否有重复，不检查数据库中已保存的当日记录
+- **原因**：遗漏了 DB 层已有数据的校验
+- **解决**：保存前检查 `records`（已从 DB 加载的当日出勤）中是否包含相同工人，同时在下拉选项中过滤掉已有记录的工人
+- **防范**：涉及唯一性校验时，必须同时检查内存状态和数据库状态
+
+### 临时工汇总页缺少结算操作
+- **现象**：WorkerList 临时工汇总 tab 仅展示只读数据，无法直接标记结算
+- **原因**：功能遗漏
+- **解决**：在汇总表格中为每位工人添加"全部结清"/"取消结清"按钮，批量操作该工人该月所有出勤记录
+- **防范**：每个展示汇总数据的页面都应考虑是否需要关联的操作入口
+
+### Tauri 图标缺失导致构建失败
+- **现象**：`tauri build` 报错 `icons/icon.ico not found; required for generating a Windows Resource file`
+- **原因**：`src-tauri/icons/` 目录不存在或缺少必要的图标文件
+- **解决**：准备一个 1024x1024 的正方形 PNG 图标，运行 `npx tauri icon <path-to-png>` 自动生成所有尺寸的图标
+- **防范**：项目初始化时就生成图标目录，确保 `tauri.conf.json` 中引用的图标文件都存在
+
+### WiX MSI 构建中文产品名失败
+- **现象**：MSI 构建报 `error LGHT0102: The localization variable !(loc.TauriLanguage) is unknown`
+- **原因**：WiX 默认使用 en-US locale，无法找到中文本地化变量
+- **解决**：在 `tauri.conf.json` 的 `bundle.windows.wix` 中设置 `"language": ["zh-CN"]`
+- **防范**：使用中文产品名时，始终在 WiX 配置中指定中文语言
+
+### Tauri identifier 不应以 .app 结尾
+- **现象**：构建时警告 `The bundle identifier "com.xiuhua.app" ends with .app`
+- **原因**：`.app` 是 macOS 应用包扩展名，会造成冲突
+- **解决**：改为 `com.xiuhua.order` 或其他不以 `.app` 结尾的标识符
+- **防范**：Tauri identifier 命名避免 `.app` 后缀
+
+### PowerShell 不支持 && 链式命令
+- **现象**：在 PowerShell 中使用 `cmd1 && cmd2` 报错 `InvalidEndOfLine`
+- **原因**：`&&` 是 bash/zsh 语法，PowerShell 7+ 才支持
+- **解决**：使用 `;` 分隔命令，或分开执行
+- **防范**：Windows 开发环境中避免使用 `&&` 链接命令
