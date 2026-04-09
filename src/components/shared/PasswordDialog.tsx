@@ -1,5 +1,7 @@
 import { type ReactElement, useState, useCallback, type FormEvent } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+
+const isTauri =
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 import {
   Dialog,
   DialogContent,
@@ -32,10 +34,16 @@ export function PasswordDialog({
       e.preventDefault();
       setVerifying(true);
       try {
-        const ok = await invoke<boolean>('verify_password', {
-          password,
-          hash: passwordHash,
-        });
+        let ok: boolean;
+        if (isTauri) {
+          const { invoke } = await import('@tauri-apps/api/core');
+          ok = await invoke<boolean>('verify_password', { password, hash: passwordHash });
+        } else {
+          const encoder = new TextEncoder();
+          const buf = await crypto.subtle.digest('SHA-256', encoder.encode(password));
+          const hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+          ok = hash === passwordHash;
+        }
         if (ok) {
           setError('');
           onSuccess();

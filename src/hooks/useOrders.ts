@@ -25,6 +25,7 @@ interface UseOrdersResult {
   orders: OrderWithCustomer[];
   loading: boolean;
   reload: () => Promise<void>;
+  changeStatus: (orderId: number, status: OrderStatus) => Promise<void>;
 }
 
 export function useOrders(filters?: OrderFilters): UseOrdersResult {
@@ -51,7 +52,17 @@ export function useOrders(filters?: OrderFilters): UseOrdersResult {
     void reload();
   }, [reload]);
 
-  return { orders, loading, reload };
+  const changeStatus = useCallback(
+    async (orderId: number, newStatus: OrderStatus): Promise<void> => {
+      await updateOrderStatus(orderId, newStatus);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o)),
+      );
+    },
+    [],
+  );
+
+  return { orders, loading, reload, changeStatus };
 }
 
 interface UseOrderDetailResult {

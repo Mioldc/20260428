@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -13,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useOrders } from '@/hooks/useOrders';
 import { formatMoney, formatDate, cn } from '@/lib/utils';
 import { exportOrderList } from '@/lib/export';
@@ -30,16 +30,29 @@ const STATUS_LABELS: Record<string, string> = {
 export function OrderList(): ReactElement {
   const [keyword, setKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const filters = useMemo(
     () => ({
       status: statusFilter ?? undefined,
       keyword: keyword.trim() || undefined,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
     }),
-    [keyword, statusFilter],
+    [keyword, statusFilter, dateFrom, dateTo],
   );
 
-  const { orders, loading } = useOrders(filters);
+  const { orders, loading, changeStatus } = useOrders(filters);
+
+  async function handleStatusChange(orderId: number, newStatus: OrderStatus): Promise<void> {
+    try {
+      await changeStatus(orderId, newStatus);
+      toast.success(`状态已更新为"${newStatus}"`);
+    } catch {
+      toast.error('状态更新失败');
+    }
+  }
 
   if (loading && orders.length === 0) {
     toast.dismiss();
@@ -73,8 +86,8 @@ export function OrderList(): ReactElement {
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-1">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex flex-wrap items-center gap-1">
           {ALL_STATUSES.map((s) => (
             <Button
               key={s ?? ''}
@@ -97,13 +110,43 @@ export function OrderList(): ReactElement {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-muted-foreground shrink-0">下单日期</span>
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="w-[140px] h-8 text-sm"
+        />
+        <span className="text-muted-foreground">—</span>
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="w-[140px] h-8 text-sm"
+        />
+        {(dateFrom || dateTo) && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              setDateFrom('');
+              setDateTo('');
+            }}
+          >
+            清除日期
+          </Button>
+        )}
+      </div>
+
       <Card>
         <CardContent className="pt-4">
           {loading ? (
             <p className="text-center text-muted-foreground py-8">加载中...</p>
           ) : orders.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">
-              {keyword || statusFilter
+              {keyword || statusFilter || dateFrom || dateTo
                 ? '未找到匹配的订单'
                 : '暂无订单数据，点击"新建订单"创建第一个订单'}
             </p>
@@ -145,8 +188,20 @@ export function OrderList(): ReactElement {
                     >
                       {formatMoney(o.unpaidAmount)}
                     </TableCell>
-                    <TableCell>
-                      <StatusBadge status={o.status} />
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        value={o.status}
+                        onChange={(e) =>
+                          void handleStatusChange(o.id, e.target.value as OrderStatus)
+                        }
+                        className="h-7 w-28 text-xs"
+                      >
+                        {Object.values(ORDER_STATUS).map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </Select>
                     </TableCell>
                     <TableCell>{formatDate(o.orderDate)}</TableCell>
                     <TableCell>{o.deliveryDate ? formatDate(o.deliveryDate) : '-'}</TableCell>

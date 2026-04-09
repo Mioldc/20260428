@@ -1,6 +1,4 @@
 import { type ReactElement, useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
 import { Shield, Copy, FileUp, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,6 +18,7 @@ export function LicenseGate({ onActivated }: LicenseGateProps): ReactElement {
   useEffect(() => {
     async function loadHwid(): Promise<void> {
       try {
+        const { invoke } = await import('@tauri-apps/api/core');
         const hwid = await invoke<string>('get_hardware_id');
         setHardwareId(hwid);
       } catch (e) {
@@ -43,6 +42,9 @@ export function LicenseGate({ onActivated }: LicenseGateProps): ReactElement {
 
   const handleImport = useCallback(async () => {
     try {
+      const { open } = await import('@tauri-apps/plugin-dialog');
+      const { invoke } = await import('@tauri-apps/api/core');
+
       const filePath = await open({
         multiple: false,
         filters: [{ name: '授权文件', extensions: ['lic'] }],

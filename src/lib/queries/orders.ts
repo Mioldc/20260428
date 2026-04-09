@@ -92,8 +92,8 @@ export async function updateOrder(id: number, data: NewOrder): Promise<void> {
      productName = $5, patternName = $6, patternNo = $7, fabricType = $8,
      embPosition = $9, embSize = $10, colorCount = $11, stitchCount = $12,
      quantity = $13, unitPrice = $14, totalAmount = $15, deposit = $16,
-     unpaidAmount = $17, specialNotes = $18, updatedAt = datetime('now','localtime')
-     WHERE id = $19`,
+     unpaidAmount = $17, status = $18, specialNotes = $19, updatedAt = datetime('now','localtime')
+     WHERE id = $20`,
     [
       data.orderNo,
       data.customerId,
@@ -112,6 +112,7 @@ export async function updateOrder(id: number, data: NewOrder): Promise<void> {
       data.totalAmount,
       data.deposit ?? 0,
       data.unpaidAmount,
+      data.status ?? '待打样',
       data.specialNotes ?? null,
       id,
     ],

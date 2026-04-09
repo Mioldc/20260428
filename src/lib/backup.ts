@@ -1,5 +1,3 @@
-import { invoke } from '@tauri-apps/api/core';
-import { save, open } from '@tauri-apps/plugin-dialog';
 import { closeDb, setConfig, getConfig } from '@/lib/db';
 
 function isTauri(): boolean {
@@ -12,6 +10,9 @@ export async function backupDatabase(): Promise<string | null> {
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
   const defaultName = `xiuhua-backup-${dateStr}.db`;
+
+  const { save } = await import('@tauri-apps/plugin-dialog');
+  const { invoke } = await import('@tauri-apps/api/core');
 
   const dest = await save({
     defaultPath: defaultName,
@@ -26,6 +27,9 @@ export async function backupDatabase(): Promise<string | null> {
 
 export async function restoreDatabase(): Promise<boolean> {
   if (!isTauri()) return false;
+
+  const { open } = await import('@tauri-apps/plugin-dialog');
+  const { invoke } = await import('@tauri-apps/api/core');
 
   const src = await open({
     multiple: false,

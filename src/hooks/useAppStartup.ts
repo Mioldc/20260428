@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { getConfig } from '@/lib/db';
+
+const isTauri =
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 interface UseAppStartupResult {
   licensed: boolean;
@@ -45,12 +47,17 @@ export function useAppStartup(): UseAppStartupResult {
 
   useEffect(() => {
     async function init(): Promise<void> {
-      try {
-        await invoke('check_license');
+      if (isTauri) {
+        try {
+          const { invoke } = await import('@tauri-apps/api/core');
+          await invoke('check_license');
+          setLicensed(true);
+        } catch {
+          setLoading(false);
+          return;
+        }
+      } else {
         setLicensed(true);
-      } catch {
-        setLoading(false);
-        return;
       }
 
       try {

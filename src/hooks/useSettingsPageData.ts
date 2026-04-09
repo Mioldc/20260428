@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { invoke } from '@tauri-apps/api/core';
 import { backupDatabase, restoreDatabase } from '@/lib/backup';
 import { getConfig, setConfig } from '@/lib/db';
 import type { LicenseInfo } from '@/types';
+
+const isTauri =
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
 type PasswordUpdateResult = 'set' | 'cleared';
 
@@ -36,11 +38,14 @@ export function useSettingsPageData(): UseSettingsPageDataResult {
         setCurrentPassword(password);
         setLastBackupTime(backupTime);
 
-        try {
-          const info = await invoke<LicenseInfo>('check_license');
-          setLicenseInfo(info);
-        } catch {
-          setLicenseInfo(null);
+        if (isTauri) {
+          try {
+            const { invoke } = await import('@tauri-apps/api/core');
+            const info = await invoke<LicenseInfo>('check_license');
+            setLicenseInfo(info);
+          } catch {
+            setLicenseInfo(null);
+          }
         }
       } finally {
         setPasswordLoading(false);
@@ -55,7 +60,16 @@ export function useSettingsPageData(): UseSettingsPageDataResult {
       const trimmed = password.trim();
 
       if (trimmed) {
-        const hash = await invoke<string>('hash_password', { password: trimmed });
+        let hash: string;
+        if (isTauri) {
+          const { invoke } = await import('@tauri-apps/api/core');
+          hash = await invoke<string>('hash_password', { password: trimmed });
+        } else {
+          const encoder = new TextEncoder();
+          const data = encoder.encode(trimmed);
+          const buf = await crypto.subtle.digest('SHA-256', data);
+          hash = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
         await setConfig('password', hash);
         setCurrentPassword(hash);
         return 'set';
