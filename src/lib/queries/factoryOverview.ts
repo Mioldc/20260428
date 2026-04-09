@@ -1,5 +1,6 @@
 import { select } from '@/lib/db';
 import type { FactoryOverviewData, FactoryOverviewGranularity, FactoryOverviewRow } from '@/types';
+import { getFactoryOverviewPeriodKey } from '@/lib/utils';
 
 interface MetricRow {
   periodKey: string;
@@ -16,28 +17,6 @@ interface MetricMaps {
 interface PeriodDefinition {
   key: string;
   label: string;
-}
-
-function padMonth(month: number): string {
-  return String(month).padStart(2, '0');
-}
-
-function buildQuarterFromMonth(month: number): number {
-  return Math.floor((month - 1) / 3) + 1;
-}
-
-export function getFactoryOverviewPeriodKey(
-  year: number,
-  granularity: FactoryOverviewGranularity,
-  index?: number,
-): string {
-  if (granularity === 'month') {
-    return `${year}-${padMonth(index ?? 1)}`;
-  }
-  if (granularity === 'quarter') {
-    return `${year}-Q${index ?? 1}`;
-  }
-  return String(year);
 }
 
 export function buildFactoryOverviewPeriods(
@@ -213,8 +192,4 @@ export async function getFactoryOverviewData(
       threadPurchaseExpense: threadPurchases,
     }),
   };
-}
-
-export function getCurrentQuarter(date = new Date()): number {
-  return buildQuarterFromMonth(date.getMonth() + 1);
 }

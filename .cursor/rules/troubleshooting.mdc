@@ -77,3 +77,9 @@ alwaysApply: true
 - **原因**：`&&` 是 bash/zsh 语法，PowerShell 7+ 才支持
 - **解决**：使用 `;` 分隔命令，或分开执行
 - **防范**：Windows 开发环境中避免使用 `&&` 链接命令
+
+### Recharts Pie / Tooltip 严格类型（FactoryOverview）
+- **现象**：`tsc` 报错：`percent` 可能为 `undefined`；`Tooltip` 的 `formatter` 中 `value` 与 `number` 不兼容
+- **原因**：Recharts 将 `percent` 标为可选；`ValueType` 为 `number | string | ReadonlyArray<...>`，且 `formatter` 的 `value` 可为 `undefined`
+- **解决**：`label` 用 `(percent ?? 0)`；`formatter` 对 `value` 做联合收窄（如 `typeof` / `Number` + `Number.isFinite`）再交给业务函数
+- **防范**：Pie 与 Tooltip 回调不要假定参数已是 `number`

@@ -17,11 +17,7 @@ import {
 } from '@/components/ui/table';
 import { useFactoryOverview } from '@/hooks/useFactoryOverview';
 import { exportFactoryOverview } from '@/lib/export';
-import {
-  getCurrentQuarter,
-  getFactoryOverviewPeriodKey,
-} from '@/lib/queries/factoryOverview';
-import { formatMoney } from '@/lib/utils';
+import { formatMoney, getCurrentQuarter, getFactoryOverviewPeriodKey } from '@/lib/utils';
 import { FACTORY_OVERVIEW_GRANULARITY, type FactoryOverviewGranularity } from '@/types';
 
 const today = new Date();
@@ -31,6 +27,11 @@ const currentQuarter = getCurrentQuarter(today);
 
 const EXPENSE_COLORS = ['#f59e0b', '#3b82f6'] as const;
 const CASHFLOW_COLORS = ['#10b981', '#ef4444'] as const;
+
+function formatPieTooltipValue(value: unknown): string {
+  const n = typeof value === 'number' ? value : Number(value);
+  return formatMoney(Number.isFinite(n) ? n : 0);
+}
 
 function getSummaryKey(
   year: number,
@@ -65,7 +66,8 @@ export function FactoryOverview(): ReactElement {
   }, [availableYears]);
 
   const selectedKey = getSummaryKey(year, granularity, month, quarter);
-  const summaryRow = data?.rows.find((row) => row.periodKey === selectedKey) ?? data?.rows[0] ?? null;
+  const summaryRow =
+    data?.rows.find((row) => row.periodKey === selectedKey) ?? data?.rows[0] ?? null;
 
   const expensePieData = useMemo(() => {
     if (!summaryRow) return [];
@@ -233,7 +235,9 @@ export function FactoryOverview(): ReactElement {
           <div className="grid grid-cols-2 gap-4 xl:grid-cols-6">
             <Card>
               <CardContent className="pt-6">
-                <p className="text-sm text-muted-foreground">{summaryRow?.periodLabel ?? '统计周期'}</p>
+                <p className="text-sm text-muted-foreground">
+                  {summaryRow?.periodLabel ?? '统计周期'}
+                </p>
                 <p className="text-xl font-bold">{summaryRow?.periodLabel ?? '--'}</p>
               </CardContent>
             </Card>
@@ -302,14 +306,14 @@ export function FactoryOverview(): ReactElement {
                           outerRadius={90}
                           paddingAngle={3}
                           label={({ name, percent }) =>
-                            `${name} ${(percent * 100).toFixed(1)}%`
+                            `${name} ${((percent ?? 0) * 100).toFixed(1)}%`
                           }
                         >
                           {expensePieData.map((_, idx) => (
                             <Cell key={idx} fill={EXPENSE_COLORS[idx % EXPENSE_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: number) => formatMoney(value)} />
+                        <Tooltip formatter={formatPieTooltipValue} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>
@@ -335,14 +339,14 @@ export function FactoryOverview(): ReactElement {
                           outerRadius={90}
                           paddingAngle={3}
                           label={({ name, percent }) =>
-                            `${name} ${(percent * 100).toFixed(1)}%`
+                            `${name} ${((percent ?? 0) * 100).toFixed(1)}%`
                           }
                         >
                           {cashflowPieData.map((_, idx) => (
                             <Cell key={idx} fill={CASHFLOW_COLORS[idx % CASHFLOW_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip formatter={(value: number) => formatMoney(value)} />
+                        <Tooltip formatter={formatPieTooltipValue} />
                         <Legend />
                       </PieChart>
                     </ResponsiveContainer>

@@ -287,11 +287,22 @@ export function exportFactoryOverview(
     ]);
     currentSheet['!cols'] = [{ wch: 18 }, { wch: 24 }];
     XLSX.utils.book_append_sheet(wb, currentSheet, '当前周期');
-    XLSX.writeFile(wb, `经营统计_${granularityLabel}_${summaryRow?.periodLabel ?? `${year}年`}.xlsx`);
+    XLSX.writeFile(
+      wb,
+      `经营统计_${granularityLabel}_${summaryRow?.periodLabel ?? `${year}年`}.xlsx`,
+    );
     return;
   }
 
-  const detailHeaders = ['周期', '营收(元)', '实收(元)', '工资支出(元)', '线材采购(元)', '总支出(元)', '净现金结余(元)'];
+  const detailHeaders = [
+    '周期',
+    '营收(元)',
+    '实收(元)',
+    '工资支出(元)',
+    '线材采购(元)',
+    '总支出(元)',
+    '净现金结余(元)',
+  ];
   const detailRows = rows.map((row) => [
     row.periodLabel,
     centsToYuan(row.revenueAmount),

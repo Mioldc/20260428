@@ -87,9 +87,9 @@ src-tauri/migrations/         SQLite schema 迁移脚本
 orders/       订单管理
 customers/    客户管理
 production/   生产记录
-finance/      收款与对账单
+finance/      收款、客户对账单、工厂经营统计（月/季/年、图表、导出）
 workers/      工人、工资、出勤
-threads/      线材库存与采购记录
+threads/      线材库存、采购记录、库存调整
 settings/     机台、备份、密码、授权信息
 ```
 
@@ -109,15 +109,19 @@ components/   → UI 组件，使用 hooks
 pages/        → 页面组件，组合 components
 ```
 
-## 当前已知偏差
+## 当前实现基线
 
-本轮已完成启动、设置、收款/对账、工人模块的第一轮分层收口，页面层不再直接依赖 `@/lib/queries/*` 或 `@/lib/db`。
+当前代码以已上线功能为准，以下能力已纳入正式范围：
 
-后续新增功能时继续遵循：
+1. `finance/` 包含收款登记、客户对账单、工厂经营统计。
+2. 工厂经营统计首版即包含月 / 季 / 年切换、汇总卡片、周期明细、饼图展示和 Excel 导出。
+3. `threads/` 包含线材主数据、库存调整和采购记录，采购支出进入工厂经营统计口径。
+
+后续新增或重构时继续遵循：
 
 1. 页面层只负责交互编排、表单状态和 UI 反馈。
-2. 数据读取、聚合和副作用动作优先封装进 `src/hooks/`。
-3. `src/lib/db.ts` 仅作为 hooks / queries / 基础能力层的桥接，不直接暴露给页面。
+2. 数据读取、聚合和数据库副作用优先封装进 `src/hooks/`。
+3. 页面层允许直接依赖 `src/lib/utils.ts`、`src/lib/business.ts`、`src/lib/export.ts` 这类纯前端辅助模块，但不得直接依赖 `src/lib/queries/*`、`src/lib/db.ts`、`src/lib/schema.ts`、`src/lib/backup.ts`。
 
 ## Phase 回顾机制
 

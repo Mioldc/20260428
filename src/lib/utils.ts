@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import type { FactoryOverviewGranularity } from '@/types';
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
@@ -34,4 +35,24 @@ export function generateOrderNo(sequence: number): string {
   const d = String(now.getDate()).padStart(2, '0');
   const seq = String(sequence).padStart(4, '0');
   return `XH${y}${m}${d}${seq}`;
+}
+
+export function getCurrentQuarter(date: Date = new Date()): number {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
+
+export function getFactoryOverviewPeriodKey(
+  year: number,
+  granularity: FactoryOverviewGranularity,
+  index?: number,
+): string {
+  if (granularity === 'month') {
+    return `${year}-${String(index ?? 1).padStart(2, '0')}`;
+  }
+
+  if (granularity === 'quarter') {
+    return `${year}-Q${index ?? 1}`;
+  }
+
+  return String(year);
 }

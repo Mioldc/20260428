@@ -21,23 +21,30 @@ components/   → UI 组件，使用 hooks
 pages/        → 页面组件，组合 components
 ```
 
+补充约定：
+
+- `src/lib/utils.ts`、`src/lib/business.ts`、`src/lib/export.ts` 属于前端纯辅助能力，可被 `hooks/` 与 `pages/` 直接依赖。
+- `src/lib/db.ts`、`src/lib/queries/`、`src/lib/schema.ts`、`src/lib/backup.ts` 属于数据访问或系统桥接层，不得被 `pages/` 直接依赖。
+
 ## 目录职责
 
 | 目录 | 职责 | 可依赖 |
 |------|------|--------|
 | `src/types/` | TypeScript 类型和接口 | 无 |
 | `src/lib/schema.ts` | Drizzle 表定义 | types |
-| `src/lib/queries/` | 数据库 CRUD 函数 | schema, types |
+| `src/lib/queries/` | 数据库 CRUD 函数 | schema, types, utils |
 | `src/lib/utils.ts` | 纯工具函数（日期、金额等） | types |
-| `src/hooks/` | React 自定义 hooks | queries, utils |
+| `src/lib/business.ts` | 纯业务计算与前端侧衍生逻辑 | types, utils |
+| `src/lib/export.ts` | 前端导出能力（Excel 等） | types, utils |
+| `src/hooks/` | React 自定义 hooks | queries, utils, business |
 | `src/components/ui/` | shadcn/ui 基础组件 | 无业务依赖 |
 | `src/components/shared/` | 业务通用组件 | hooks, ui |
 | `src/components/layout/` | 布局组件（导航栏等） | hooks, ui |
-| `src/pages/` | 页面级组件 | components, hooks |
+| `src/pages/` | 页面级组件 | components, hooks, types, utils, business, export |
 
 ## 禁止
 
-- pages/ 直接调用 queries/（必须通过 hooks 封装）
+- pages/ 直接调用 `queries/`、`db.ts`、`schema.ts`、`backup.ts`
 - components/ 直接引用 schema（必须通过 hooks 或 props 传入）
 - 任何形式的循环依赖
 - 跨层级的反向依赖

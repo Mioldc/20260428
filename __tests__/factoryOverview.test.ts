@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { getCurrentQuarter, getFactoryOverviewPeriodKey } from '@/lib/utils';
 import {
   buildFactoryOverviewPeriods,
-  getCurrentQuarter,
-  getFactoryOverviewPeriodKey,
   mergeFactoryOverviewRows,
 } from '@/lib/queries/factoryOverview';
 
