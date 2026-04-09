@@ -73,11 +73,19 @@ export function Finance(): ReactElement {
 
   const setDateFrom = useCallback((v: string) => {
     _setDateFrom(v);
-    try { localStorage.setItem('finance_dateFrom', v); } catch { /* ignore */ }
+    try {
+      localStorage.setItem('finance_dateFrom', v);
+    } catch {
+      /* ignore */
+    }
   }, []);
   const setDateTo = useCallback((v: string) => {
     _setDateTo(v);
-    try { localStorage.setItem('finance_dateTo', v); } catch { /* ignore */ }
+    try {
+      localStorage.setItem('finance_dateTo', v);
+    } catch {
+      /* ignore */
+    }
   }, []);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<PaymentFormState>(EMPTY_FORM);

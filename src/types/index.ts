@@ -318,6 +318,84 @@ export interface StatementPayment {
   paymentMethod: PaymentMethod;
 }
 
+export const THREAD_MATERIAL = {
+  POLYESTER: '涤纶线',
+  RAYON: '人造丝线',
+  METALLIC: '金银线',
+  OTHER: '其他',
+} as const;
+
+export type ThreadMaterial = (typeof THREAD_MATERIAL)[keyof typeof THREAD_MATERIAL];
+
+export const STOCK_STATUS = {
+  ALL: 'all',
+  LOW: 'low',
+  ZERO: 'zero',
+} as const;
+
+export type StockStatus = (typeof STOCK_STATUS)[keyof typeof STOCK_STATUS];
+
+export interface Thread {
+  id: number;
+  colorNo: string;
+  brand: string | null;
+  colorName: string | null;
+  material: ThreadMaterial | null;
+  quantity: number;
+  minStock: number;
+  unitCost: number | null;
+  supplier: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NewThread {
+  colorNo: string;
+  brand?: string;
+  colorName?: string;
+  material?: ThreadMaterial;
+  quantity?: number;
+  minStock?: number;
+  unitCost?: number;
+  supplier?: string;
+  notes?: string;
+}
+
+export interface ThreadFilters {
+  keyword?: string;
+  brand?: string;
+  stockStatus?: StockStatus;
+}
+
+export interface ThreadPurchase {
+  id: number;
+  threadId: number;
+  quantity: number;
+  unitCost: number | null;
+  totalCost: number | null;
+  supplier: string | null;
+  purchaseDate: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface NewThreadPurchase {
+  threadId: number;
+  quantity: number;
+  unitCost?: number;
+  totalCost?: number;
+  supplier?: string;
+  purchaseDate: string;
+  notes?: string;
+}
+
+export interface ThreadStats {
+  totalTypes: number;
+  totalQuantity: number;
+  lowStockCount: number;
+}
+
 export interface StatementData {
   customer: Customer;
   dateFrom: string;

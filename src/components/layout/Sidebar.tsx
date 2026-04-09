@@ -1,6 +1,6 @@
 import { type ReactElement } from 'react';
 import { Link, useLocation } from 'react-router';
-import { FileText, Users, Factory, Wallet, HardHat, Settings } from 'lucide-react';
+import { FileText, Users, Factory, Palette, Wallet, HardHat, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -13,6 +13,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/', label: '订单管理', icon: <FileText className="h-5 w-5" /> },
   { path: '/customers', label: '客户管理', icon: <Users className="h-5 w-5" /> },
   { path: '/production', label: '生产管理', icon: <Factory className="h-5 w-5" /> },
+  { path: '/threads', label: '线材库存', icon: <Palette className="h-5 w-5" /> },
   { path: '/finance', label: '收款对账', icon: <Wallet className="h-5 w-5" /> },
   { path: '/workers', label: '工人工资', icon: <HardHat className="h-5 w-5" /> },
   { path: '/settings', label: '系统设置', icon: <Settings className="h-5 w-5" /> },

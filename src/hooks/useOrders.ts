@@ -9,12 +9,13 @@ import {
   getNextOrderSequence,
   getOrdersByCustomerId,
 } from '@/lib/queries/orders';
-import { getPaymentsByOrderId } from '@/lib/queries/payments';
+import { createPayment, deletePayment, getPaymentsByOrderId } from '@/lib/queries/payments';
 import { getProductionRecordsByOrderId } from '@/lib/queries/production';
 import type {
   OrderWithCustomer,
   OrderFilters,
   NewOrder,
+  NewPayment,
   OrderStatus,
   OrderPayment,
   ProductionRecordWithDetails,
@@ -60,6 +61,8 @@ interface UseOrderDetailResult {
   loading: boolean;
   changeStatus: (status: OrderStatus) => Promise<void>;
   remove: () => Promise<void>;
+  addPayment: (data: NewPayment) => Promise<number>;
+  removePayment: (paymentId: number) => Promise<void>;
   reload: () => Promise<void>;
 }
 
@@ -107,7 +110,34 @@ export function useOrderDetail(id: number | null): UseOrderDetailResult {
     await deleteOrder(id);
   }, [id]);
 
-  return { order, productions, payments, loading, changeStatus, remove, reload };
+  const addPayment = useCallback(
+    async (data: NewPayment): Promise<number> => {
+      const paymentId = await createPayment(data);
+      await reload();
+      return paymentId;
+    },
+    [reload],
+  );
+
+  const removePayment = useCallback(
+    async (paymentId: number): Promise<void> => {
+      await deletePayment(paymentId);
+      await reload();
+    },
+    [reload],
+  );
+
+  return {
+    order,
+    productions,
+    payments,
+    loading,
+    changeStatus,
+    remove,
+    addPayment,
+    removePayment,
+    reload,
+  };
 }
 
 interface UseOrderFormResult {

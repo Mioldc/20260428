@@ -269,7 +269,14 @@ export function useAttendance(filters?: {
 export function useTempWorkerSummary(
   dateFrom: string,
   dateTo: string,
-): { summary: TempWorkerSummary[]; loading: boolean; reload: () => Promise<void> } {
+): {
+  summary: TempWorkerSummary[];
+  loading: boolean;
+  reload: () => Promise<void>;
+  settleWorker: (workerId: number) => Promise<number>;
+  unsettleWorker: (workerId: number) => Promise<number>;
+  getExportAttendances: () => Promise<DailyAttendanceWithWorker[]>;
+} {
   const [summary, setSummary] = useState<TempWorkerSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -287,5 +294,59 @@ export function useTempWorkerSummary(
     void reload();
   }, [reload]);
 
-  return { summary, loading, reload };
+  const settleWorker = useCallback(
+    async (workerId: number): Promise<number> => {
+      const records = await getDailyAttendances({
+        workerId,
+        dateFrom,
+        dateTo,
+        isPaid: 0,
+      });
+
+      if (records.length === 0) {
+        return 0;
+      }
+
+      await markAttendancePaid(
+        records.map((record) => record.id),
+        new Date().toISOString().slice(0, 10),
+      );
+      await reload();
+      return records.length;
+    },
+    [dateFrom, dateTo, reload],
+  );
+
+  const unsettleWorker = useCallback(
+    async (workerId: number): Promise<number> => {
+      const records = await getDailyAttendances({
+        workerId,
+        dateFrom,
+        dateTo,
+        isPaid: 1,
+      });
+
+      if (records.length === 0) {
+        return 0;
+      }
+
+      await markAttendanceUnpaid(records.map((record) => record.id));
+      await reload();
+      return records.length;
+    },
+    [dateFrom, dateTo, reload],
+  );
+
+  const getExportAttendances = useCallback(async (): Promise<DailyAttendanceWithWorker[]> => {
+    return getDailyAttendances({ dateFrom, dateTo });
+  }, [dateFrom, dateTo]);
+
+  return {
+    summary,
+    loading,
+    reload,
+    settleWorker,
+    unsettleWorker,
+    getExportAttendances,
+  };
 }

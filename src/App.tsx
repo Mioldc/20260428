@@ -1,10 +1,10 @@
-import { type ReactElement, useState, useEffect, useCallback } from 'react';
+import { type ReactElement } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
-import { invoke } from '@tauri-apps/api/core';
-import { toast } from 'sonner';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PasswordDialog } from '@/components/shared/PasswordDialog';
 import { LicenseGate } from '@/components/shared/LicenseGate';
+import { useAppStartup } from '@/hooks/useAppStartup';
+import { useBackupReminder } from '@/hooks/useBackupReminder';
 import { OrderList } from '@/pages/orders/OrderList';
 import { OrderForm } from '@/pages/orders/OrderForm';
 import { OrderDetail } from '@/pages/orders/OrderDetail';
@@ -15,74 +15,20 @@ import { CustomerList } from '@/pages/customers/CustomerList';
 import { CustomerDetail } from '@/pages/customers/CustomerDetail';
 import { WorkerList } from '@/pages/workers/WorkerList';
 import { Attendance } from '@/pages/workers/Attendance';
+import { ThreadList } from '@/pages/threads/ThreadList';
 import { SettingsPage } from '@/pages/Settings';
-import { getConfig } from '@/lib/db';
-import { shouldRemindBackup } from '@/lib/backup';
 
 export function App(): ReactElement {
-  const [licensed, setLicensed] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [passwordHash, setPasswordHash] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    licensed,
+    authenticated,
+    passwordHash,
+    loading,
+    handleLicenseActivated,
+    handleAuthSuccess,
+  } = useAppStartup();
 
-  useEffect(() => {
-    async function init(): Promise<void> {
-      try {
-        await invoke('check_license');
-        setLicensed(true);
-      } catch {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const pwd = await getConfig('password');
-        setPasswordHash(pwd);
-        if (!pwd) {
-          setAuthenticated(true);
-        }
-      } catch {
-        setAuthenticated(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-    void init();
-  }, []);
-
-  useEffect(() => {
-    if (!authenticated) return;
-    async function checkBackup(): Promise<void> {
-      try {
-        const remind = await shouldRemindBackup();
-        if (remind) {
-          toast.warning('已超过 7 天未备份数据，建议前往"系统设置"进行备份', {
-            duration: 8000,
-          });
-        }
-      } catch {
-        // silently ignore
-      }
-    }
-    void checkBackup();
-  }, [authenticated]);
-
-  const handleLicenseActivated = useCallback(async (): Promise<void> => {
-    setLicensed(true);
-    try {
-      const pwd = await getConfig('password');
-      setPasswordHash(pwd);
-      if (!pwd) {
-        setAuthenticated(true);
-      }
-    } catch {
-      setAuthenticated(true);
-    }
-  }, []);
-
-  const handleAuthSuccess = useCallback((): void => {
-    setAuthenticated(true);
-  }, []);
+  useBackupReminder(authenticated);
 
   if (loading) {
     return (
@@ -97,9 +43,7 @@ export function App(): ReactElement {
   }
 
   if (!authenticated && passwordHash) {
-    return (
-      <PasswordDialog open={true} onSuccess={handleAuthSuccess} passwordHash={passwordHash} />
-    );
+    return <PasswordDialog open={true} onSuccess={handleAuthSuccess} passwordHash={passwordHash} />;
   }
 
   return (
@@ -111,6 +55,7 @@ export function App(): ReactElement {
           <Route path="orders/:id" element={<OrderDetail />} />
           <Route path="orders/:id/edit" element={<OrderForm />} />
           <Route path="production" element={<ProductionRecord />} />
+          <Route path="threads" element={<ThreadList />} />
           <Route path="finance" element={<Finance />} />
           <Route path="finance/statement" element={<Statement />} />
           <Route path="customers" element={<CustomerList />} />

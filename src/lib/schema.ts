@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, unique } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -128,4 +128,37 @@ export const appConfig = sqliteTable('appConfig', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   key: text('key').notNull().unique(),
   value: text('value'),
+});
+
+export const threads = sqliteTable(
+  'threads',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    colorNo: text('colorNo').notNull(),
+    brand: text('brand'),
+    colorName: text('colorName'),
+    material: text('material'),
+    quantity: integer('quantity').notNull().default(0),
+    minStock: integer('minStock').notNull().default(0),
+    unitCost: integer('unitCost'),
+    supplier: text('supplier'),
+    notes: text('notes'),
+    createdAt: timestamp(),
+    updatedAt: timestamp(),
+  },
+  (table) => [unique().on(table.colorNo, table.brand)],
+);
+
+export const threadPurchases = sqliteTable('threadPurchases', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  threadId: integer('threadId')
+    .notNull()
+    .references(() => threads.id),
+  quantity: integer('quantity').notNull(),
+  unitCost: integer('unitCost'),
+  totalCost: integer('totalCost'),
+  supplier: text('supplier'),
+  purchaseDate: text('purchaseDate').notNull(),
+  notes: text('notes'),
+  createdAt: timestamp(),
 });

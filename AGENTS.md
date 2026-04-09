@@ -35,9 +35,65 @@ npm run format        # Prettier 格式化
 npm run format:check  # Prettier 格式检查
 npm run test          # Vitest 单元测试
 npm run test:watch    # Vitest 监视模式
+npm run test:e2e      # Playwright 端到端测试
 ```
 
-## 分层架构概览
+## 项目结构概览
+
+当前项目由三部分组成：
+
+```text
+src/                React + Vite 前端
+src-tauri/          Tauri 2 / Rust 桌面壳与 SQLite 持久化
+e2e/                Playwright 端到端测试
+```
+
+### 前端分层
+
+```text
+src/types/              领域类型与常量
+  ↓
+src/lib/schema.ts       Drizzle 表结构定义
+src/lib/queries/        数据访问层
+src/lib/db.ts           Tauri SQL 调用桥接
+src/lib/backup.ts       备份恢复能力
+src/lib/export.ts       Excel 导出
+src/lib/business.ts     轻量业务计算
+src/lib/utils.ts        纯工具函数
+  ↓
+src/hooks/              面向页面的状态与数据封装
+  ↓
+src/components/ui/      基础 UI 组件
+src/components/shared/  业务复用组件
+src/components/layout/  布局与导航
+  ↓
+src/pages/              页面模块
+  ↓
+src/App.tsx             路由装配、授权与启动流程
+```
+
+### 桌面端结构
+
+```text
+src-tauri/src/database.rs     SQLite 连接、迁移、加密备份/恢复
+src-tauri/src/license.rs      授权校验与机器绑定
+src-tauri/src/lib.rs          Tauri commands 导出
+src-tauri/migrations/         SQLite schema 迁移脚本
+```
+
+### 业务模块
+
+```text
+orders/       订单管理
+customers/    客户管理
+production/   生产记录
+finance/      收款与对账单
+workers/      工人、工资、出勤
+threads/      线材库存与采购记录
+settings/     机台、备份、密码、授权信息
+```
+
+## 目标分层架构
 
 ```
 types/        → 纯类型定义，零依赖
@@ -52,6 +108,16 @@ components/   → UI 组件，使用 hooks
   ↓
 pages/        → 页面组件，组合 components
 ```
+
+## 当前已知偏差
+
+本轮已完成启动、设置、收款/对账、工人模块的第一轮分层收口，页面层不再直接依赖 `@/lib/queries/*` 或 `@/lib/db`。
+
+后续新增功能时继续遵循：
+
+1. 页面层只负责交互编排、表单状态和 UI 反馈。
+2. 数据读取、聚合和副作用动作优先封装进 `src/hooks/`。
+3. `src/lib/db.ts` 仅作为 hooks / queries / 基础能力层的桥接，不直接暴露给页面。
 
 ## Phase 回顾机制
 

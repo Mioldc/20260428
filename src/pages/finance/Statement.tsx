@@ -16,19 +16,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useCustomers } from '@/hooks/useCustomers';
-import { getStatementData } from '@/lib/queries/payments';
-import { getCustomerById } from '@/lib/queries/customers';
+import { useStatement } from '@/hooks/useStatement';
 import { formatMoney, formatDate } from '@/lib/utils';
 import { exportStatement } from '@/lib/export';
-import type { StatementData } from '@/types';
 
 export function Statement(): ReactElement {
   const { customers } = useCustomers();
   const [customerId, setCustomerId] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [data, setData] = useState<StatementData | null>(null);
-  const [generating, setGenerating] = useState(false);
+  const { data, generating, generate } = useStatement();
 
   const handleGenerate = useCallback(async (): Promise<void> => {
     if (!customerId) {
@@ -39,37 +36,16 @@ export function Statement(): ReactElement {
       toast.error('请选择时间范围');
       return;
     }
-    setGenerating(true);
+
     try {
-      const customer = await getCustomerById(Number(customerId));
-      if (!customer) {
+      const success = await generate(Number(customerId), dateFrom, dateTo);
+      if (!success) {
         toast.error('客户不存在');
-        return;
       }
-      const { orders, payments } = await getStatementData(Number(customerId), dateFrom, dateTo);
-
-      const totalOrderAmount = orders.reduce((s, o) => s + o.totalAmount, 0);
-      const totalDeposit = orders.reduce((s, o) => s + o.deposit, 0);
-      const totalPaid = payments.reduce((s, p) => s + p.amount, 0);
-      const balance = totalOrderAmount - totalDeposit - totalPaid;
-
-      setData({
-        customer,
-        dateFrom,
-        dateTo,
-        orders,
-        payments,
-        totalOrderAmount,
-        totalDeposit,
-        totalPaid,
-        balance,
-      });
     } catch {
       toast.error('生成失败');
-    } finally {
-      setGenerating(false);
     }
-  }, [customerId, dateFrom, dateTo]);
+  }, [customerId, dateFrom, dateTo, generate]);
 
   function handleExport(): void {
     if (!data) return;

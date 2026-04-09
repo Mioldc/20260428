@@ -109,6 +109,32 @@
     "  id INTEGER PRIMARY KEY AUTOINCREMENT," +
     "  key TEXT NOT NULL UNIQUE," +
     "  value TEXT" +
+    ");" +
+    "CREATE TABLE IF NOT EXISTS threads (" +
+    "  id INTEGER PRIMARY KEY AUTOINCREMENT," +
+    "  colorNo TEXT NOT NULL," +
+    "  brand TEXT," +
+    "  colorName TEXT," +
+    "  material TEXT," +
+    "  quantity INTEGER NOT NULL DEFAULT 0," +
+    "  minStock INTEGER NOT NULL DEFAULT 0," +
+    "  unitCost INTEGER," +
+    "  supplier TEXT," +
+    "  notes TEXT," +
+    "  createdAt TEXT NOT NULL DEFAULT (datetime('now','localtime'))," +
+    "  updatedAt TEXT NOT NULL DEFAULT (datetime('now','localtime'))," +
+    "  UNIQUE(colorNo, brand)" +
+    ");" +
+    "CREATE TABLE IF NOT EXISTS threadPurchases (" +
+    "  id INTEGER PRIMARY KEY AUTOINCREMENT," +
+    "  threadId INTEGER NOT NULL REFERENCES threads(id)," +
+    "  quantity INTEGER NOT NULL," +
+    "  unitCost INTEGER," +
+    "  totalCost INTEGER," +
+    "  supplier TEXT," +
+    "  purchaseDate TEXT NOT NULL," +
+    "  notes TEXT," +
+    "  createdAt TEXT NOT NULL DEFAULT (datetime('now','localtime'))" +
     ");";
 
   var dbResolve;
@@ -162,6 +188,34 @@
     return { sql: converted, values: newValues };
   }
 
+  function executeSql(sql, values) {
+    var p = convertParams(sql, values || []);
+    sqlDb.run(p.sql, p.values);
+    var lastIdRes = sqlDb.exec('SELECT last_insert_rowid() as id');
+    var changesRes = sqlDb.exec('SELECT changes() as c');
+    var rowsAffected = changesRes.length > 0 ? changesRes[0].values[0][0] : 0;
+    var lastInsertId = lastIdRes.length > 0 ? lastIdRes[0].values[0][0] : 0;
+
+    return {
+      rowsAffected: rowsAffected,
+      lastInsertId: lastInsertId,
+    };
+  }
+
+  function selectSql(sql, values) {
+    var ps = convertParams(sql, values || []);
+    var stmt = sqlDb.prepare(ps.sql);
+    if (ps.values.length > 0) {
+      stmt.bind(ps.values);
+    }
+    var results = [];
+    while (stmt.step()) {
+      results.push(stmt.getAsObject());
+    }
+    stmt.free();
+    return results;
+  }
+
   window.__TAURI_INTERNALS__ = {
     invoke: function (cmd, args) {
       return dbReady.then(function () {
@@ -170,32 +224,32 @@
         }
 
         switch (cmd) {
+          case 'check_license':
+            return {
+              valid: true,
+              hardware_id: 'playwright-hwid',
+              product: 'xiuhua',
+              edition: 'dev',
+              expires_at: null,
+            };
+
+          case 'db_execute':
+            return executeSql(args.sql, args.params || []);
+
+          case 'db_select':
+            return selectSql(args.sql, args.params || []);
+
+          case 'db_close':
+            return true;
+
           case 'plugin:sql|load':
             return undefined;
 
-          case 'plugin:sql|execute': {
-            var p = convertParams(args.query, args.values || []);
-            sqlDb.run(p.sql, p.values);
-            var lastIdRes = sqlDb.exec('SELECT last_insert_rowid() as id');
-            var changesRes = sqlDb.exec('SELECT changes() as c');
-            var rowsAffected = changesRes.length > 0 ? changesRes[0].values[0][0] : 0;
-            var lastInsertId = lastIdRes.length > 0 ? lastIdRes[0].values[0][0] : 0;
-            return [rowsAffected, lastInsertId];
-          }
+          case 'plugin:sql|execute':
+            return executeSql(args.query, args.values || []);
 
-          case 'plugin:sql|select': {
-            var ps = convertParams(args.query, args.values || []);
-            var stmt = sqlDb.prepare(ps.sql);
-            if (ps.values.length > 0) {
-              stmt.bind(ps.values);
-            }
-            var results = [];
-            while (stmt.step()) {
-              results.push(stmt.getAsObject());
-            }
-            stmt.free();
-            return results;
-          }
+          case 'plugin:sql|select':
+            return selectSql(args.query, args.values || []);
 
           case 'plugin:sql|close':
             return true;

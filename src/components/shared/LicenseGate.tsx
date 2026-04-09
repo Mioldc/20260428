@@ -102,11 +102,7 @@ export function LicenseGate({ onActivated }: LicenseGateProps): ReactElement {
                 </p>
               </div>
 
-              <Button
-                className="w-full"
-                onClick={() => void handleImport()}
-                disabled={activating}
-              >
+              <Button className="w-full" onClick={() => void handleImport()} disabled={activating}>
                 <FileUp className="h-4 w-4" />
                 {activating ? '验证中...' : '导入授权文件 (.lic)'}
               </Button>

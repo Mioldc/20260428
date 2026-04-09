@@ -1,5 +1,4 @@
-import { type ReactElement, useState, useEffect } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { type ReactElement, useState } from 'react';
 import { Plus, Pencil, Trash2, Save, Database, Lock, Unlock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -26,9 +25,8 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useMachines } from '@/hooks/useMachines';
-import { getConfig, setConfig } from '@/lib/db';
-import { backupDatabase, restoreDatabase } from '@/lib/backup';
-import type { LicenseInfo, Machine, NewMachine, MachineStatus } from '@/types';
+import { useSettingsPageData } from '@/hooks/useSettingsPageData';
+import type { Machine, NewMachine, MachineStatus } from '@/types';
 import { MACHINE_STATUS } from '@/types';
 
 interface MachineFormState {
@@ -60,41 +58,21 @@ export function SettingsPage(): ReactElement {
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
-  // Password state
-  const [currentPassword, setCurrentPassword] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordLoading, setPasswordLoading] = useState(true);
-
-  // Backup state
-  const [lastBackupTime, setLastBackupTime] = useState<string | null>(null);
-  const [backingUp, setBackingUp] = useState(false);
-  const [restoring, setRestoring] = useState(false);
-
-  // License state
-  const [licenseInfo, setLicenseInfo] = useState<LicenseInfo | null>(null);
 
   const { machines, loading, create, update, remove } = useMachines();
-
-  useEffect(() => {
-    async function loadConfig(): Promise<void> {
-      try {
-        const pwd = await getConfig('password');
-        setCurrentPassword(pwd);
-        const backup = await getConfig('lastBackupTime');
-        setLastBackupTime(backup);
-        try {
-          const info = await invoke<LicenseInfo>('check_license');
-          setLicenseInfo(info);
-        } catch {
-          // license not valid
-        }
-      } finally {
-        setPasswordLoading(false);
-      }
-    }
-    void loadConfig();
-  }, []);
+  const {
+    currentPassword,
+    passwordLoading,
+    lastBackupTime,
+    backingUp,
+    restoring,
+    licenseInfo,
+    updateStartupPassword,
+    createBackup,
+    restoreFromBackup,
+  } = useSettingsPageData();
 
   function openCreate(): void {
     setEditingId(null);
@@ -160,14 +138,10 @@ export function SettingsPage(): ReactElement {
       return;
     }
     try {
-      if (newPassword.trim()) {
-        const hash = await invoke<string>('hash_password', { password: newPassword.trim() });
-        await setConfig('password', hash);
-        setCurrentPassword(hash);
+      const result = await updateStartupPassword(newPassword);
+      if (result === 'set') {
         toast.success('密码已设置');
       } else {
-        await setConfig('password', null);
-        setCurrentPassword(null);
         toast.success('密码已清除');
       }
       setNewPassword('');
@@ -178,25 +152,19 @@ export function SettingsPage(): ReactElement {
   }
 
   async function handleBackup(): Promise<void> {
-    setBackingUp(true);
     try {
-      const dest = await backupDatabase();
-      if (dest) {
-        const now = await getConfig('lastBackupTime');
-        setLastBackupTime(now);
+      const success = await createBackup();
+      if (success) {
         toast.success('备份成功');
       }
     } catch {
       toast.error('备份失败');
-    } finally {
-      setBackingUp(false);
     }
   }
 
   async function handleRestore(): Promise<void> {
-    setRestoring(true);
     try {
-      const success = await restoreDatabase();
+      const success = await restoreFromBackup();
       if (success) {
         toast.success('恢复成功，即将重新加载应用...');
         setTimeout(() => {
@@ -205,8 +173,6 @@ export function SettingsPage(): ReactElement {
       }
     } catch {
       toast.error('恢复失败');
-    } finally {
-      setRestoring(false);
     }
   }
 
@@ -297,9 +263,7 @@ export function SettingsPage(): ReactElement {
             <Shield className="h-5 w-5 text-primary" />
             <div>
               <CardTitle>授权信息</CardTitle>
-              <CardDescription>
-                {licenseInfo ? '已授权' : '未授权'}
-              </CardDescription>
+              <CardDescription>{licenseInfo ? '已授权' : '未授权'}</CardDescription>
             </div>
           </div>
         </CardHeader>

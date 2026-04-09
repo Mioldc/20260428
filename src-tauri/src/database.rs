@@ -306,7 +306,9 @@ fn cleanup_working_files(db_path: &Path) {
 
 fn run_migrations(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(include_str!("../migrations/001_core_tables.sql"))
-        .map_err(|e| format!("数据库迁移失败: {}", e))
+        .map_err(|e| format!("数据库迁移失败: {}", e))?;
+    conn.execute_batch(include_str!("../migrations/002_threads.sql"))
+        .map_err(|e| format!("数据库迁移失败(线材表): {}", e))
 }
 
 // ---------------------------------------------------------------------------

@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/dialog';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useOrderDetail } from '@/hooks/useOrders';
-import { createPayment, deletePayment } from '@/lib/queries/payments';
 import { formatMoney, formatDate, formatCurrency, yuanToCents } from '@/lib/utils';
 import type { OrderStatus, PaymentMethod } from '@/types';
 import { ORDER_STATUS, PAYMENT_METHOD } from '@/types';
@@ -51,7 +50,7 @@ export function OrderDetail(): ReactElement {
   const navigate = useNavigate();
   const numericId = id ? Number(id) : null;
 
-  const { order, productions, payments, loading, changeStatus, remove, reload } =
+  const { order, productions, payments, loading, changeStatus, remove, addPayment, removePayment } =
     useOrderDetail(numericId);
 
   const [activeTab, setActiveTab] = useState<Tab>('info');
@@ -88,7 +87,7 @@ export function OrderDetail(): ReactElement {
     }
     setSavingPayment(true);
     try {
-      await createPayment({
+      await addPayment({
         orderId: numericId,
         amount: yuanToCents(Number(paymentForm.amount)),
         paymentDate: paymentForm.paymentDate,
@@ -98,7 +97,6 @@ export function OrderDetail(): ReactElement {
       toast.success('收款登记成功');
       setPaymentDialogOpen(false);
       setPaymentForm(EMPTY_PAYMENT);
-      await reload();
     } catch {
       toast.error('保存失败');
     } finally {
@@ -109,10 +107,9 @@ export function OrderDetail(): ReactElement {
   async function handleDeletePayment(): Promise<void> {
     if (deletePaymentId === null) return;
     try {
-      await deletePayment(deletePaymentId);
+      await removePayment(deletePaymentId);
       toast.success('收款记录已删除');
       setDeletePaymentId(null);
-      await reload();
     } catch {
       toast.error('删除失败');
     }

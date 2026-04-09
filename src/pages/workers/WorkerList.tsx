@@ -28,11 +28,6 @@ import {
 import { useWorkers, useWageRecords, useTempWorkerSummary } from '@/hooks/useWorkers';
 import { formatMoney } from '@/lib/utils';
 import { exportWageDetail, exportTempWageDetail } from '@/lib/export';
-import {
-  getDailyAttendances,
-  markAttendancePaid,
-  markAttendanceUnpaid,
-} from '@/lib/queries/workers';
 import type { Worker, NewWorker, WorkerType, WorkerStatus } from '@/types';
 import { WORKER_TYPE, WORKER_STATUS } from '@/types';
 
@@ -100,7 +95,9 @@ export function WorkerList(): ReactElement {
   const {
     summary: tempSummary,
     loading: tempLoading,
-    reload: reloadTempSummary,
+    settleWorker,
+    unsettleWorker,
+    getExportAttendances,
   } = useTempWorkerSummary(monthStart(tempMonth), monthEnd(tempMonth));
 
   const wageTotals = useMemo(() => {
@@ -203,20 +200,13 @@ export function WorkerList(): ReactElement {
 
   async function handleSettleWorker(workerId: number): Promise<void> {
     try {
-      const records = await getDailyAttendances({
-        workerId,
-        dateFrom: monthStart(tempMonth),
-        dateTo: monthEnd(tempMonth),
-        isPaid: 0,
-      });
-      if (records.length === 0) {
+      const settledCount = await settleWorker(workerId);
+      if (settledCount === 0) {
         toast.info('该工人本月无未结清记录');
         return;
       }
-      const ids = records.map((r) => r.id);
-      await markAttendancePaid(ids, new Date().toISOString().slice(0, 10));
-      await reloadTempSummary();
-      toast.success(`已结清 ${records.length} 条记录`);
+
+      toast.success(`已结清 ${settledCount} 条记录`);
     } catch {
       toast.error('结清失败');
     }
@@ -224,30 +214,20 @@ export function WorkerList(): ReactElement {
 
   async function handleUnsettleWorker(workerId: number): Promise<void> {
     try {
-      const records = await getDailyAttendances({
-        workerId,
-        dateFrom: monthStart(tempMonth),
-        dateTo: monthEnd(tempMonth),
-        isPaid: 1,
-      });
-      if (records.length === 0) {
+      const unsettledCount = await unsettleWorker(workerId);
+      if (unsettledCount === 0) {
         toast.info('该工人本月无已结清记录');
         return;
       }
-      const ids = records.map((r) => r.id);
-      await markAttendanceUnpaid(ids);
-      await reloadTempSummary();
-      toast.success(`已取消结清 ${records.length} 条记录`);
+
+      toast.success(`已取消结清 ${unsettledCount} 条记录`);
     } catch {
       toast.error('操作失败');
     }
   }
 
   async function handleExportTempWages(): Promise<void> {
-    const records = await getDailyAttendances({
-      dateFrom: monthStart(tempMonth),
-      dateTo: monthEnd(tempMonth),
-    });
+    const records = await getExportAttendances();
     exportTempWageDetail(records, tempMonth);
     toast.success('临时工工资明细已导出');
   }
@@ -397,13 +377,17 @@ export function WorkerList(): ReactElement {
             <Card>
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground mb-1">应发总额</p>
-                <p className="text-lg font-semibold tabular-nums">{formatMoney(wageTotals.total)}</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {formatMoney(wageTotals.total)}
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground mb-1">已发放</p>
-                <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatMoney(wageTotals.paid)}</p>
+                <p className="text-lg font-semibold tabular-nums text-emerald-600">
+                  {formatMoney(wageTotals.paid)}
+                </p>
               </CardContent>
             </Card>
             <Card>
@@ -524,13 +508,17 @@ export function WorkerList(): ReactElement {
             <Card>
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground mb-1">应付总额</p>
-                <p className="text-lg font-semibold tabular-nums">{formatMoney(tempTotals.total)}</p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {formatMoney(tempTotals.total)}
+                </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground mb-1">已结清</p>
-                <p className="text-lg font-semibold tabular-nums text-emerald-600">{formatMoney(tempTotals.paid)}</p>
+                <p className="text-lg font-semibold tabular-nums text-emerald-600">
+                  {formatMoney(tempTotals.paid)}
+                </p>
               </CardContent>
             </Card>
             <Card>

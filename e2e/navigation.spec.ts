@@ -11,6 +11,7 @@ test.describe('侧边栏导航', () => {
     const navTests = [
       { label: '客户管理', heading: '客户管理' },
       { label: '生产管理', heading: '生产管理' },
+      { label: '线材库存', heading: '线材库存' },
       { label: '收款对账', heading: '收款对账' },
       { label: '工人工资', heading: '工人工资' },
       { label: '系统设置', heading: '系统设置' },
@@ -30,6 +31,10 @@ test.describe('侧边栏导航', () => {
     await page.locator('nav >> text="客户管理"').click();
     const customerLink = page.locator('nav a', { hasText: '客户管理' });
     await expect(customerLink).toHaveClass(/bg-sidebar-accent/);
+
+    await page.locator('nav >> text="线材库存"').click();
+    const threadLink = page.locator('nav a', { hasText: '线材库存' });
+    await expect(threadLink).toHaveClass(/bg-sidebar-accent/);
   });
 
   test('页面底部显示版本号', async ({ appPage: page }) => {
