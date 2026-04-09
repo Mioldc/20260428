@@ -10,6 +10,7 @@ import { OrderForm } from '@/pages/orders/OrderForm';
 import { OrderDetail } from '@/pages/orders/OrderDetail';
 import { ProductionRecord } from '@/pages/production/ProductionRecord';
 import { Finance } from '@/pages/finance/Finance';
+import { FactoryOverview } from '@/pages/finance/FactoryOverview';
 import { Statement } from '@/pages/finance/Statement';
 import { CustomerList } from '@/pages/customers/CustomerList';
 import { CustomerDetail } from '@/pages/customers/CustomerDetail';
@@ -57,6 +58,7 @@ export function App(): ReactElement {
           <Route path="production" element={<ProductionRecord />} />
           <Route path="threads" element={<ThreadList />} />
           <Route path="finance" element={<Finance />} />
+          <Route path="finance/overview" element={<FactoryOverview />} />
           <Route path="finance/statement" element={<Statement />} />
           <Route path="customers" element={<CustomerList />} />
           <Route path="customers/:id" element={<CustomerDetail />} />

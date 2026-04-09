@@ -407,3 +407,29 @@ export interface StatementData {
   totalPaid: number;
   balance: number;
 }
+
+export const FACTORY_OVERVIEW_GRANULARITY = {
+  MONTH: 'month',
+  QUARTER: 'quarter',
+  YEAR: 'year',
+} as const;
+
+export type FactoryOverviewGranularity =
+  (typeof FACTORY_OVERVIEW_GRANULARITY)[keyof typeof FACTORY_OVERVIEW_GRANULARITY];
+
+export interface FactoryOverviewRow {
+  periodKey: string;
+  periodLabel: string;
+  revenueAmount: number;
+  receivedAmount: number;
+  wageExpense: number;
+  threadPurchaseExpense: number;
+  totalExpense: number;
+  netCashflow: number;
+}
+
+export interface FactoryOverviewData {
+  granularity: FactoryOverviewGranularity;
+  year: number;
+  rows: FactoryOverviewRow[];
+}

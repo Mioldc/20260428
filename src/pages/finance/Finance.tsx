@@ -1,6 +1,6 @@
 import { type ReactElement, useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router';
-import { Plus, Trash2, Download, Search } from 'lucide-react';
+import { Plus, Trash2, Download, Search, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -173,6 +173,12 @@ export function Finance(): ReactElement {
           <Button variant="outline" onClick={handleExport} disabled={payments.length === 0}>
             <Download className="h-4 w-4" />
             导出
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/finance/overview">
+              <BarChart3 className="h-4 w-4" />
+              工厂经营统计
+            </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/finance/statement">生成对账单</Link>

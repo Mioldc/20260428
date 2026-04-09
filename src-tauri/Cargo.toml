@@ -2,6 +2,7 @@
 name = "xiuhua"
 version = "0.1.0"
 edition = "2021"
+default-run = "xiuhua"
 
 [lib]
 name = "xiuhua_lib"

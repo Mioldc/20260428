@@ -8,6 +8,19 @@ use tauri::{AppHandle, Manager, State};
 mod database;
 mod license;
 
+const INTERNAL_BETA_BUILD: bool = true;
+
+fn beta_license_info() -> license::LicenseInfo {
+    let hardware_id = license::get_hardware_id().unwrap_or_else(|_| "BETA".to_string());
+    license::LicenseInfo {
+        valid: true,
+        hardware_id,
+        product: "xiuhua".to_string(),
+        edition: "内测版".to_string(),
+        expires_at: None,
+    }
+}
+
 #[tauri::command]
 fn hash_password(password: String) -> Result<String, String> {
     let salt = SaltString::generate(&mut OsRng);
@@ -66,19 +79,18 @@ fn get_hardware_id() -> Result<String, String> {
 
 #[tauri::command]
 fn check_license(app: AppHandle) -> Result<license::LicenseInfo, String> {
+    if INTERNAL_BETA_BUILD {
+        return Ok(beta_license_info());
+    }
+
     let app_data = app.path().app_data_dir().map_err(|e| e.to_string())?;
     let result = license::load_and_verify(&app_data);
 
     #[cfg(debug_assertions)]
     if result.is_err() {
-        let hwid = license::get_hardware_id().unwrap_or_else(|_| "DEV".to_string());
-        return Ok(license::LicenseInfo {
-            valid: true,
-            hardware_id: hwid,
-            product: "xiuhua".to_string(),
-            edition: "开发版".to_string(),
-            expires_at: None,
-        });
+        let mut info = beta_license_info();
+        info.edition = "开发版".to_string();
+        return Ok(info);
     }
 
     result

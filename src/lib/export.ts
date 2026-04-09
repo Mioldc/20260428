@@ -1,4 +1,5 @@
 import * as XLSX from 'xlsx';
+import type { FactoryOverviewGranularity, FactoryOverviewRow } from '@/types';
 
 interface ExportColumn<T> {
   header: string;
@@ -236,4 +237,88 @@ export function exportTempWageDetail(
     '临时工工资',
     `临时工工资明细_${dateRange}.xlsx`,
   );
+}
+
+export function exportFactoryOverview(
+  granularity: FactoryOverviewGranularity,
+  year: number,
+  rows: FactoryOverviewRow[],
+  summaryRow: FactoryOverviewRow | null,
+  scope: 'current' | 'full' = 'full',
+): void {
+  const wb = XLSX.utils.book_new();
+
+  const granularityLabel =
+    granularity === 'month' ? '按月' : granularity === 'quarter' ? '按季度' : '按年';
+
+  const summarySheet = XLSX.utils.aoa_to_sheet([
+    ['工厂经营统计'],
+    ['统计维度', granularityLabel],
+    ['统计年份', `${year}年`],
+    ['当前选中周期', summaryRow?.periodLabel ?? ''],
+    [],
+    ['项目', '金额(元)'],
+    ['营收', centsToYuan(summaryRow?.revenueAmount ?? 0)],
+    ['实收', centsToYuan(summaryRow?.receivedAmount ?? 0)],
+    ['工资支出', centsToYuan(summaryRow?.wageExpense ?? 0)],
+    ['线材采购', centsToYuan(summaryRow?.threadPurchaseExpense ?? 0)],
+    ['总支出', centsToYuan(summaryRow?.totalExpense ?? 0)],
+    ['净现金结余', centsToYuan(summaryRow?.netCashflow ?? 0)],
+    [],
+    ['说明', '当前支出口径仅含工人工资和线材采购'],
+  ]);
+  summarySheet['!cols'] = [{ wch: 18 }, { wch: 24 }];
+  XLSX.utils.book_append_sheet(wb, summarySheet, '汇总');
+
+  if (scope === 'current') {
+    const currentSheet = XLSX.utils.aoa_to_sheet([
+      ['当前选中周期明细'],
+      ['统计维度', granularityLabel],
+      ['统计年份', `${year}年`],
+      ['当前选中周期', summaryRow?.periodLabel ?? ''],
+      [],
+      ['项目', '金额(元)'],
+      ['营收', centsToYuan(summaryRow?.revenueAmount ?? 0)],
+      ['实收', centsToYuan(summaryRow?.receivedAmount ?? 0)],
+      ['工资支出', centsToYuan(summaryRow?.wageExpense ?? 0)],
+      ['线材采购', centsToYuan(summaryRow?.threadPurchaseExpense ?? 0)],
+      ['总支出', centsToYuan(summaryRow?.totalExpense ?? 0)],
+      ['净现金结余', centsToYuan(summaryRow?.netCashflow ?? 0)],
+    ]);
+    currentSheet['!cols'] = [{ wch: 18 }, { wch: 24 }];
+    XLSX.utils.book_append_sheet(wb, currentSheet, '当前周期');
+    XLSX.writeFile(wb, `经营统计_${granularityLabel}_${summaryRow?.periodLabel ?? `${year}年`}.xlsx`);
+    return;
+  }
+
+  const detailHeaders = ['周期', '营收(元)', '实收(元)', '工资支出(元)', '线材采购(元)', '总支出(元)', '净现金结余(元)'];
+  const detailRows = rows.map((row) => [
+    row.periodLabel,
+    centsToYuan(row.revenueAmount),
+    centsToYuan(row.receivedAmount),
+    centsToYuan(row.wageExpense),
+    centsToYuan(row.threadPurchaseExpense),
+    centsToYuan(row.totalExpense),
+    centsToYuan(row.netCashflow),
+  ]);
+
+  const detailSheet = XLSX.utils.aoa_to_sheet([
+    [`工厂经营统计明细 - ${granularityLabel}`],
+    [`统计年份: ${year}年`],
+    [],
+    detailHeaders,
+    ...detailRows,
+  ]);
+  detailSheet['!cols'] = [
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 14 },
+    { wch: 16 },
+  ];
+  XLSX.utils.book_append_sheet(wb, detailSheet, '周期明细');
+
+  XLSX.writeFile(wb, `经营统计_${granularityLabel}_${year}年_全年明细.xlsx`);
 }
