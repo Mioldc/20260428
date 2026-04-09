@@ -165,6 +165,14 @@ export interface AppConfig {
   value: string | null;
 }
 
+export interface LicenseInfo {
+  valid: boolean;
+  hardware_id: string;
+  product: string;
+  edition: string;
+  expires_at: string | null;
+}
+
 export interface NewCustomer {
   name: string;
   contactPerson?: string;

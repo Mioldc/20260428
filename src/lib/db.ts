@@ -1,38 +1,26 @@
-import Database from '@tauri-apps/plugin-sql';
-
-const DB_URL = 'sqlite:xiuhua.db';
-
-let connection: Database | null = null;
+import { invoke } from '@tauri-apps/api/core';
 
 function isTauri(): boolean {
   return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 }
 
-export async function getDb(): Promise<Database> {
-  if (!connection) {
-    if (!isTauri()) {
-      throw new Error('数据库仅在 Tauri 环境中可用。请使用 tauri dev 启动应用。');
-    }
-    connection = await Database.load(DB_URL);
+function assertTauri(): void {
+  if (!isTauri()) {
+    throw new Error('数据库仅在 Tauri 环境中可用。请使用 tauri dev 启动应用。');
   }
-  return connection;
 }
 
 export async function execute(
   sql: string,
   params: unknown[] = [],
 ): Promise<{ rowsAffected: number; lastInsertId: number }> {
-  const db = await getDb();
-  const result = await db.execute(sql, params);
-  return {
-    rowsAffected: result.rowsAffected,
-    lastInsertId: result.lastInsertId ?? 0,
-  };
+  assertTauri();
+  return invoke('db_execute', { sql, params });
 }
 
 export async function select<T>(sql: string, params: unknown[] = []): Promise<T[]> {
-  const db = await getDb();
-  return db.select<T[]>(sql, params);
+  assertTauri();
+  return invoke('db_select', { sql, params });
 }
 
 export async function getConfig(key: string): Promise<string | null> {
@@ -52,8 +40,6 @@ export async function setConfig(key: string, value: string | null): Promise<void
 }
 
 export async function closeDb(): Promise<void> {
-  if (connection) {
-    await connection.close();
-    connection = null;
-  }
+  if (!isTauri()) return;
+  await invoke('db_close');
 }

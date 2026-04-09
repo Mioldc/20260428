@@ -10,3 +10,9 @@ Thumbs.db
 
 *.db
 *.db-journal
+
+# release archive
+*.zip
+
+# license private key (NEVER commit)
+src-tauri/keys/private_key.bin

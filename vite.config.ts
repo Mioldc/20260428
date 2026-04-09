@@ -20,4 +20,12 @@ export default defineConfig({
     hmr: host ? { protocol: 'ws', host, port: 5174 } : undefined,
   },
   envPrefix: ['VITE_', 'TAURI_'],
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: { drop_console: true, drop_debugger: true },
+      mangle: { toplevel: true },
+    },
+    sourcemap: false,
+  },
 });

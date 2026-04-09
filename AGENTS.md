@@ -14,6 +14,7 @@
 | `.cursor/rules/coding-standards.mdc` | 命名规范、文件组织、组件模式 |
 | `.cursor/rules/database.mdc` | 表设计约定、Drizzle 用法、查询模式 |
 | `.cursor/rules/ui-patterns.mdc` | shadcn/ui 约定、布局规范、交互模式 |
+| `.cursor/rules/security.mdc` | 商业保密性与软件保护规范 |
 | `.cursor/rules/troubleshooting.mdc` | 已知坑和解决方案（持续积累） |
 
 ## 核心原则

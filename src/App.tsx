@@ -1,8 +1,10 @@
 import { type ReactElement, useState, useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router';
+import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PasswordDialog } from '@/components/shared/PasswordDialog';
+import { LicenseGate } from '@/components/shared/LicenseGate';
 import { OrderList } from '@/pages/orders/OrderList';
 import { OrderForm } from '@/pages/orders/OrderForm';
 import { OrderDetail } from '@/pages/orders/OrderDetail';
@@ -18,15 +20,24 @@ import { getConfig } from '@/lib/db';
 import { shouldRemindBackup } from '@/lib/backup';
 
 export function App(): ReactElement {
+  const [licensed, setLicensed] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
-  const [storedPassword, setStoredPassword] = useState<string | null>(null);
+  const [passwordHash, setPasswordHash] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function init(): Promise<void> {
       try {
+        await invoke('check_license');
+        setLicensed(true);
+      } catch {
+        setLoading(false);
+        return;
+      }
+
+      try {
         const pwd = await getConfig('password');
-        setStoredPassword(pwd);
+        setPasswordHash(pwd);
         if (!pwd) {
           setAuthenticated(true);
         }
@@ -56,6 +67,19 @@ export function App(): ReactElement {
     void checkBackup();
   }, [authenticated]);
 
+  const handleLicenseActivated = useCallback(async (): Promise<void> => {
+    setLicensed(true);
+    try {
+      const pwd = await getConfig('password');
+      setPasswordHash(pwd);
+      if (!pwd) {
+        setAuthenticated(true);
+      }
+    } catch {
+      setAuthenticated(true);
+    }
+  }, []);
+
   const handleAuthSuccess = useCallback((): void => {
     setAuthenticated(true);
   }, []);
@@ -68,9 +92,13 @@ export function App(): ReactElement {
     );
   }
 
-  if (!authenticated && storedPassword) {
+  if (!licensed) {
+    return <LicenseGate onActivated={() => void handleLicenseActivated()} />;
+  }
+
+  if (!authenticated && passwordHash) {
     return (
-      <PasswordDialog open={true} onSuccess={handleAuthSuccess} storedPassword={storedPassword} />
+      <PasswordDialog open={true} onSuccess={handleAuthSuccess} passwordHash={passwordHash} />
     );
   }
 

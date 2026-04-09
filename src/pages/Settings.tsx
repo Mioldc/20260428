@@ -1,5 +1,6 @@
 import { type ReactElement, useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Save, Database, Lock, Unlock } from 'lucide-react';
+import { invoke } from '@tauri-apps/api/core';
+import { Plus, Pencil, Trash2, Save, Database, Lock, Unlock, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -27,7 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { useMachines } from '@/hooks/useMachines';
 import { getConfig, setConfig } from '@/lib/db';
 import { backupDatabase, restoreDatabase } from '@/lib/backup';
-import type { Machine, NewMachine, MachineStatus } from '@/types';
+import type { LicenseInfo, Machine, NewMachine, MachineStatus } from '@/types';
 import { MACHINE_STATUS } from '@/types';
 
 interface MachineFormState {
@@ -70,6 +71,9 @@ export function SettingsPage(): ReactElement {
   const [backingUp, setBackingUp] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
+  // License state
+  const [licenseInfo, setLicenseInfo] = useState<LicenseInfo | null>(null);
+
   const { machines, loading, create, update, remove } = useMachines();
 
   useEffect(() => {
@@ -79,6 +83,12 @@ export function SettingsPage(): ReactElement {
         setCurrentPassword(pwd);
         const backup = await getConfig('lastBackupTime');
         setLastBackupTime(backup);
+        try {
+          const info = await invoke<LicenseInfo>('check_license');
+          setLicenseInfo(info);
+        } catch {
+          // license not valid
+        }
       } finally {
         setPasswordLoading(false);
       }
@@ -151,8 +161,9 @@ export function SettingsPage(): ReactElement {
     }
     try {
       if (newPassword.trim()) {
-        await setConfig('password', newPassword.trim());
-        setCurrentPassword(newPassword.trim());
+        const hash = await invoke<string>('hash_password', { password: newPassword.trim() });
+        await setConfig('password', hash);
+        setCurrentPassword(hash);
         toast.success('密码已设置');
       } else {
         await setConfig('password', null);
@@ -275,6 +286,56 @@ export function SettingsPage(): ReactElement {
                 ))}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* License info */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>授权信息</CardTitle>
+              <CardDescription>
+                {licenseInfo ? '已授权' : '未授权'}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {licenseInfo ? (
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">产品</span>
+                <span>{licenseInfo.product}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">版本</span>
+                <span>{licenseInfo.edition}</span>
+              </div>
+              {licenseInfo.expires_at ? (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">有效期至</span>
+                  <span>{licenseInfo.expires_at}</span>
+                </div>
+              ) : (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">有效期</span>
+                  <span>永久</span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">机器码</span>
+                <code className="text-xs font-mono truncate max-w-[180px]">
+                  {licenseInfo.hardware_id}
+                </code>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              未找到有效授权。请在启动时导入授权文件。
+            </p>
           )}
         </CardContent>
       </Card>
